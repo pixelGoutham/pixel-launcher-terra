@@ -16,3 +16,6 @@ Have a great day
 Goutham
 aka
 Pixel Inc
+
+I really don't know at the moment how to make it easy for the reviewer to review the app ---> Maybe a Demo Video or just putting the apk as a release file for the user 
+Let's see
