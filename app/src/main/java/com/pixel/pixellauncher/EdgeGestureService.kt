@@ -190,7 +190,7 @@ class EdgeGestureService : AccessibilityService() {
             textSize = dp(10f)
             typeface = Typeface.MONOSPACE
         }
-
+//Why the hellll. I have'nt slept again and grinding Terra Hack club on the last day again on the night without sleeping T_T. And well Ill have to take a holiday off college tomorrow just to complete this HUHHHHHHH I should have just completed this early T_T
         private val pillRect = RectF()
         private val pullSpring = FluidSpring(0f)
         private var isLeftEdge = true
@@ -266,3 +266,7 @@ class EdgeGestureService : AccessibilityService() {
         }
     }
 }
+
+// We need to implement some common sense, expected features ---> Long press context menu for apps to uninstall and extra app features. Auto opening keyboard when opening the app tile. Different Tye of the App viewer tile to left to right scroll something like IOS big good launcher. We also need to optimize the touch based interactions in the homescreen they just insta trigger when holding the phone. A better Clock and Upper Part of the homescreen. And a actual settings menu to edit stuff in the launcher
+//Soooo much work to do. So little sleep
+
