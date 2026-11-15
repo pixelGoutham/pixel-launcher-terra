@@ -160,10 +160,10 @@ class MainActivity : Activity() {
 
         clockText = TextView(this).apply {
             setTextColor(Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 62f)
-            typeface = Typeface.create("sans-serif-black", Typeface.BOLD)
-            letterSpacing = -0.03f
-            setShadowLayer(12f, 0f, 4f, Color.parseColor("#99000000"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 78f)
+            typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
+            letterSpacing = -0.04f
+            setShadowLayer(16f, 0f, 6f, Color.parseColor("#99000000"))
         }
 
         otpPill = TextView(this).apply {
@@ -218,8 +218,9 @@ class MainActivity : Activity() {
             background = makeGlassCard("#B3121216", "#28FFFFFF", dp(24))
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(136)
+                ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply { bottomMargin = dp(12) }
+            minimumHeight = dp(110)
         }
         homeLayer.addView(widgetSlotContainer)
         homeLayer.addView(buildIconDock())
@@ -526,7 +527,7 @@ class MainActivity : Activity() {
         }
         widgetSlotContainer.addView(
             hostView,
-            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER)
         )
     }
 
@@ -703,7 +704,7 @@ class MainActivity : Activity() {
         }
         return if (res % 1.0 == 0.0) res.toLong().toString() else String.format(Locale.US, "%.3f", res)
     }
-//huhhhhhhhhhhhhhhhhhhhhhhhhhhh
+    //huhhhhhhhhhhhhhhhhhhhhhhhhhhh
     private fun updateHeaderTelemetry() {
         val now = Date()
         clockText.text = SimpleDateFormat("hh:mm", Locale.getDefault()).format(now)
