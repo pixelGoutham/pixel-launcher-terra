@@ -14,7 +14,6 @@ import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.net.TrafficStats
-import android.net.Uri
 import android.os.Bundle
 import android.os.Vibrator
 import android.provider.Settings
@@ -58,7 +57,6 @@ class MainActivity : Activity() {
     private lateinit var subHeaderText: TextView
     private lateinit var otpPill: TextView
     private lateinit var widgetSlotContainer: FrameLayout
-    private lateinit var contextMenuLayer: FrameLayout
 
     private val dockIconViews = mutableMapOf<String, ImageView>()
     private val dockBadgeViews = mutableMapOf<String, View>()
@@ -69,7 +67,6 @@ class MainActivity : Activity() {
     private val drawerSpring = FluidSpring()
     private var velocityTracker: VelocityTracker? = null
     private var screenHeight = 1920f
-    private var screenWidth = 1080f
     private var downY = 0f
     private var grabOffsetY = 0f
     private var isDraggingDrawer = false
@@ -98,7 +95,6 @@ class MainActivity : Activity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
         window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
         screenHeight = resources.displayMetrics.heightPixels.toFloat()
-        screenWidth = resources.displayMetrics.widthPixels.toFloat()
         touchSlop = ViewConfiguration.get(this).scaledTouchSlop
         //Meow
         appWidgetManager = AppWidgetManager.getInstance(this)
@@ -132,27 +128,6 @@ class MainActivity : Activity() {
         updateHeaderTelemetry()
     }
 
-    override fun onNewIntent(intent: Intent?) {
-        super.onNewIntent(intent)
-        if (intent?.action == Intent.ACTION_MAIN && intent.categories?.contains(Intent.CATEGORY_HOME) == true) {
-            if (contextMenuLayer.childCount > 0) contextMenuLayer.removeAllViews()
-            if (drawerSpring.pos < screenHeight * 0.5f) {
-                hideKeyboard()
-                drawerSpring.animateTo(screenHeight, 0f) { y -> applyDrawerFrame(y) }
-            } else {
-                homeLayer.scaleX = 0.93f
-                homeLayer.scaleY = 0.93f
-                val settleSpring = FluidSpring(0.93f)
-                settleSpring.animateTo(1.0f, 2.5f, 0.65f, 0.35f) { scale ->
-                    if (drawerSpring.pos >= screenHeight * 0.95f) {
-                        homeLayer.scaleX = scale
-                        homeLayer.scaleY = scale
-                    }
-                }
-            }
-        }
-    }
-
     private fun buildUi() {
         rootLayout = object : FrameLayout(this) {
             override fun onInterceptTouchEvent(ev: MotionEvent): Boolean = handleGestureIntercept(ev)
@@ -162,34 +137,19 @@ class MainActivity : Activity() {
         homeLayer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.BOTTOM
-            setPadding(dp(22), dp(48), dp(22), dp(20))
-            setOnLongClickListener {
-                vibrateTick(14)
-                startActivity(Intent(this@MainActivity, SettingsActivity::class.java))
-                true
-            }
+            setPadding(dp(18), dp(38), dp(18), dp(20))
         }
 
         val headerBox = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
-            gravity = Gravity.TOP or Gravity.START
-        }
-
-        clockText = TextView(this).apply {
-            setTextColor(Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 84f)
-            typeface = Typeface.create("sans-serif-thin", Typeface.NORMAL)
-            letterSpacing = -0.05f
-            setShadowLayer(24f, 0f, 8f, Color.parseColor("#99000000"))
         }
 
         subHeaderText = TextView(this).apply {
             setTextColor(Color.parseColor("#A8C7FA"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
             typeface = Typeface.MONOSPACE
-            letterSpacing = 0.1f
-            setPadding(dp(4), dp(8), 0, 0)
+            letterSpacing = 0.08f
         }
         attachPressFeedback(subHeaderText) {
             if (EdgeGestureService.instance == null) {
@@ -198,17 +158,25 @@ class MainActivity : Activity() {
             }
         }
 
+        clockText = TextView(this).apply {
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 62f)
+            typeface = Typeface.create("sans-serif-black", Typeface.BOLD)
+            letterSpacing = -0.03f
+            setShadowLayer(12f, 0f, 4f, Color.parseColor("#99000000"))
+        }
+
         otpPill = TextView(this).apply {
             visibility = View.GONE
             setTextColor(Color.WHITE)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
             typeface = Typeface.MONOSPACE
             background = makeGlassCard("#E6D71921", "#55FFFFFF", dp(99))
-            setPadding(dp(16), dp(8), dp(16), dp(8))
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                topMargin = dp(16)
-                marginStart = dp(4)
-            }
+            setPadding(dp(14), dp(6), dp(14), dp(6))
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = dp(8) }
         }
         attachPressFeedback(otpPill) {
             val code = MediaTurntableService.latestOtp ?: return@attachPressFeedback
@@ -219,8 +187,8 @@ class MainActivity : Activity() {
             otpPill.visibility = View.GONE
         }
 
-        headerBox.addView(clockText)
         headerBox.addView(subHeaderText)
+        headerBox.addView(clockText)
         headerBox.addView(otpPill)
         homeLayer.addView(headerBox)
 
@@ -235,22 +203,23 @@ class MainActivity : Activity() {
                 }
             },
             onRequestPermission = {
-                Toast.makeText(this, "Enable Pixel Launcher in Notification Access", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Enable Pixel Launcher in Notification Access for YT Music", Toast.LENGTH_LONG).show()
                 startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
             }
         ).apply {
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                bottomMargin = dp(14)
-            }
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(12) }
         }
         homeLayer.addView(turntableView)
 
         widgetSlotContainer = FrameLayout(this).apply {
             background = makeGlassCard("#B3121216", "#28FFFFFF", dp(24))
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                bottomMargin = dp(14)
-            }
-            minimumHeight = dp(110)
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(136)
+            ).apply { bottomMargin = dp(12) }
         }
         homeLayer.addView(widgetSlotContainer)
         homeLayer.addView(buildIconDock())
@@ -258,14 +227,6 @@ class MainActivity : Activity() {
         scrimView = View(this).apply {
             setBackgroundColor(Color.BLACK)
             alpha = 0f
-            setOnClickListener {
-                if (contextMenuLayer.childCount > 0) {
-                    contextMenuLayer.removeAllViews()
-                } else if (drawerSpring.pos < screenHeight * 0.5f) {
-                    hideKeyboard()
-                    drawerSpring.animateTo(screenHeight, 0f) { y -> applyDrawerFrame(y) }
-                }
-            }
         }
 
         drawerSheet = LinearLayout(this).apply {
@@ -309,9 +270,10 @@ class MainActivity : Activity() {
             typeface = Typeface.MONOSPACE
             background = makeGlassCard("#33D71921", "#66D71921", dp(14))
             setPadding(dp(14), dp(10), dp(14), dp(10))
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                topMargin = dp(8)
-            }
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = dp(8) }
         }
         attachPressFeedback(calcResultPill) {
             val res = calcResultPill.tag?.toString() ?: return@attachPressFeedback
@@ -323,7 +285,10 @@ class MainActivity : Activity() {
 
         val drawerBody = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
         }
 
         gridAdapter = AppGridAdapter()
@@ -335,30 +300,15 @@ class MainActivity : Activity() {
             clipToPadding = false
             adapter = gridAdapter
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
-
-            setOnScrollListener(object : android.widget.AbsListView.OnScrollListener {
-                override fun onScrollStateChanged(view: android.widget.AbsListView?, scrollState: Int) {
-                    if (scrollState != android.widget.AbsListView.OnScrollListener.SCROLL_STATE_IDLE) {
-                        hideKeyboard()
-                        if (contextMenuLayer.childCount > 0) contextMenuLayer.removeAllViews()
-                    }
-                }
-                override fun onScroll(v: android.widget.AbsListView?, f: Int, vI: Int, t: Int) {}
-            })
         }
 
         drawerBody.addView(appGrid)
         drawerBody.addView(buildAlphabetRail())
         drawerSheet.addView(drawerBody)
 
-        contextMenuLayer = FrameLayout(this).apply {
-            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-        }
-
         rootLayout.addView(homeLayer)
         rootLayout.addView(scrimView)
         rootLayout.addView(drawerSheet)
-        rootLayout.addView(contextMenuLayer)
         setContentView(rootLayout)
     }
 
@@ -366,8 +316,8 @@ class MainActivity : Activity() {
         val dockRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
-            background = makeGlassCard("#D9101014", "#33FFFFFF", dp(28))
-            setPadding(dp(8), dp(10), dp(8), dp(10))
+            background = makeGlassCard("#D9101014", "#33FFFFFF", dp(26))
+            setPadding(dp(10), dp(10), dp(10), dp(10))
         }
 
         val dockTargets = listOf(
@@ -380,7 +330,7 @@ class MainActivity : Activity() {
 
         for ((name, primaryPkg, altLabel) in dockTargets) {
             val slot = FrameLayout(this).apply {
-                layoutParams = LinearLayout.LayoutParams(0, dp(56), 1f)
+                layoutParams = LinearLayout.LayoutParams(0, dp(52), 1f)
                 setOnLongClickListener {
                     vibrateTick(12)
                     val altApp = allApps.firstOrNull { it.label.contains(altLabel, ignoreCase = true) }
@@ -391,7 +341,7 @@ class MainActivity : Activity() {
 
             val iconView = ImageView(this).apply {
                 scaleType = ImageView.ScaleType.FIT_CENTER
-                layoutParams = FrameLayout.LayoutParams(dp(40), dp(40), Gravity.CENTER)
+                layoutParams = FrameLayout.LayoutParams(dp(36), dp(36), Gravity.CENTER)
             }
             dockIconViews[primaryPkg] = iconView
 
@@ -402,9 +352,9 @@ class MainActivity : Activity() {
                     setColor(Color.parseColor("#D71921"))
                     setStroke(dp(1), Color.parseColor("#101014"))
                 }
-                layoutParams = FrameLayout.LayoutParams(dp(10), dp(10), Gravity.TOP or Gravity.END).apply {
-                    topMargin = dp(4)
-                    marginEnd = dp(10)
+                layoutParams = FrameLayout.LayoutParams(dp(9), dp(9), Gravity.TOP or Gravity.END).apply {
+                    topMargin = dp(5)
+                    marginEnd = dp(12)
                 }
             }
             dockBadgeViews[primaryPkg] = unreadDot
@@ -440,8 +390,7 @@ class MainActivity : Activity() {
             "com.whatsapp" to "WhatsApp",
             "org.localsend.localsend_app" to "LocalSend",
             "com.sec.android.app.camera" to "Camera",
-            "com.samsung.android.dialer" to "Phone",
-            "com.samsung.android.contacts" to "Contacts"
+            "com.samsung.android.dialer" to "Phone"
         )
         for ((pkg, imgView) in dockIconViews) {
             val fallbackLabel = labelMap[pkg] ?: ""
@@ -454,114 +403,6 @@ class MainActivity : Activity() {
                 dockBadgeViews[pkg]?.visibility = if (unread > 0) View.VISIBLE else View.GONE
             }
         }
-    }
-
-    private fun attachPressFeedback(view: View, onClick: () -> Unit) {
-        var startX = 0f
-        var startY = 0f
-        var isCancelled = false
-
-        view.setOnTouchListener { v, ev ->
-            when (ev.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    startX = ev.rawX
-                    startY = ev.rawY
-                    isCancelled = false
-                    v.animate().scaleX(0.92f).scaleY(0.92f).setDuration(80).start()
-                    true
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    if (!isCancelled && (abs(ev.rawX - startX) > touchSlop || abs(ev.rawY - startY) > touchSlop)) {
-                        isCancelled = true
-                        v.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
-                    }
-                    true
-                }
-                MotionEvent.ACTION_UP -> {
-                    v.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
-                    if (!isCancelled) {
-                        vibrateTick(5)
-                        onClick()
-                    }
-                    true
-                }
-                MotionEvent.ACTION_CANCEL -> {
-                    v.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
-                    true
-                }
-                else -> false
-            }
-        }
-    }
-
-    private fun showContextMenu(item: AppEntry, rawX: Float, rawY: Float) {
-        contextMenuLayer.removeAllViews()
-        hideKeyboard()
-        vibrateTick(14)
-
-        val menuCard = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            background = makeGlassCard("#F2121216", "#44FFFFFF", dp(16))
-            setPadding(dp(4), dp(4), dp(4), dp(4))
-            elevation = dp(8).toFloat()
-        }
-
-        val infoBtn = createMenuButton("App Info", "#FFFFFF") {
-            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${item.pkg}"))
-            startActivity(intent)
-            contextMenuLayer.removeAllViews()
-        }
-        val hideBtn = createMenuButton("Hide App", "#FFFFFF") {
-            val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val hidden = prefs.getStringSet("hidden_apps", mutableSetOf())?.toMutableSet() ?: mutableSetOf()
-            hidden.add(item.pkg)
-            prefs.edit().putStringSet("hidden_apps", hidden).apply()
-
-            contextMenuLayer.removeAllViews()
-            loadInstalledAppsAsync()
-            Toast.makeText(this, "${item.label} hidden", Toast.LENGTH_SHORT).show()
-        }
-        val uninstallBtn = createMenuButton("Uninstall", "#FF6B70") {
-            val intent = Intent(Intent.ACTION_DELETE, Uri.parse("package:${item.pkg}"))
-            startActivity(intent)
-            contextMenuLayer.removeAllViews()
-        }
-
-        menuCard.addView(infoBtn)
-        menuCard.addView(hideBtn)
-        menuCard.addView(uninstallBtn)
-
-        val cardWidth = dp(160)
-        val cardHeight = dp(150)
-
-        var targetX = rawX - (cardWidth / 2)
-        var targetY = rawY - cardHeight - dp(24)
-
-        if (targetX < dp(16)) targetX = dp(16).toFloat()
-        if (targetX + cardWidth > screenWidth - dp(16)) targetX = screenWidth - cardWidth - dp(16)
-        if (targetY < dp(32)) targetY = rawY + dp(24)
-
-        menuCard.x = targetX
-        menuCard.y = targetY
-        menuCard.scaleX = 0.8f
-        menuCard.scaleY = 0.8f
-        menuCard.alpha = 0f
-        menuCard.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(150).start()
-
-        contextMenuLayer.addView(menuCard, FrameLayout.LayoutParams(cardWidth, ViewGroup.LayoutParams.WRAP_CONTENT))
-    }
-
-    private fun createMenuButton(textLabel: String, colorHex: String, onClick: () -> Unit): TextView {
-        val tv = TextView(this).apply {
-            text = textLabel
-            setTextColor(Color.parseColor(colorHex))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-            typeface = Typeface.DEFAULT_BOLD
-            setPadding(dp(16), dp(12), dp(16), dp(12))
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        }
-        attachPressFeedback(tv, onClick)
-        return tv
     }
 
     private fun buildAlphabetRail(): LinearLayout {
@@ -582,6 +423,7 @@ class MainActivity : Activity() {
                     layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
                 })
             }
+
             setOnTouchListener { v, ev ->
                 when (ev.actionMasked) {
                     MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
@@ -612,12 +454,15 @@ class MainActivity : Activity() {
     private fun showBindWidgetPrompt() {
         widgetSlotContainer.removeAllViews()
         val prompt = TextView(this).apply {
-            text = "+ TAP TO BIND MATIKS WIDGET\n(Long-press anytime to swap)"
+            text = "+ TAP TO BIND MATIKS STREAK WIDGET\n(Long-press slot anytime to swap)"
             gravity = Gravity.CENTER
             setTextColor(Color.parseColor("#A8C7FA"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
             typeface = Typeface.MONOSPACE
-            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
         }
         attachPressFeedback(prompt) { launchWidgetPicker() }
         widgetSlotContainer.addView(prompt)
@@ -639,6 +484,7 @@ class MainActivity : Activity() {
             if (widgetId != -1) appWidgetHost.deleteAppWidgetId(widgetId)
             return
         }
+
         if (requestCode == REQ_PICK_WIDGET) {
             val info = appWidgetManager.getAppWidgetInfo(widgetId)
             if (info?.configure != null) {
@@ -656,7 +502,10 @@ class MainActivity : Activity() {
     }
 
     private fun saveAndAttachWidget(widgetId: Int) {
-        getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().putInt(KEY_WIDGET_ID, widgetId).apply()
+        getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putInt(KEY_WIDGET_ID, widgetId)
+            .apply()
         attachWidgetView(widgetId)
     }
 
@@ -675,11 +524,13 @@ class MainActivity : Activity() {
                 true
             }
         }
-        widgetSlotContainer.addView(hostView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER))
+        widgetSlotContainer.addView(
+            hostView,
+            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        )
     }
 
     private fun handleGestureIntercept(ev: MotionEvent): Boolean {
-        if (contextMenuLayer.childCount > 0) return false
         when (ev.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 downY = ev.rawY
@@ -744,15 +595,12 @@ class MainActivity : Activity() {
 
                     if (finalTarget > 0f) hideKeyboard()
                     vibrateTick(8)
-                    drawerSpring.animateTo(finalTarget, vy, 0.82f, 0.32f) { y ->
-                        applyDrawerFrame(y)
-                        // Auto-keyboard when drawer snaps open
-                        if (y == 0f) {
-                            searchInput.requestFocus()
-                            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-                            imm.showSoftInput(searchInput, InputMethodManager.SHOW_IMPLICIT)
-                        }
-                    }
+                    drawerSpring.animateTo(
+                        nextTarget = finalTarget,
+                        releaseVel = vy,
+                        dampingRatio = 0.82f,
+                        responseSec = 0.32f
+                    ) { y -> applyDrawerFrame(y) }
                 }
                 velocityTracker?.recycle()
                 velocityTracker = null
@@ -771,25 +619,49 @@ class MainActivity : Activity() {
         homeLayer.alpha = 1f - (progress * 0.4f)
     }
 
+    private fun attachPressFeedback(view: View, onClick: () -> Unit) {
+        view.setOnTouchListener { v, ev ->
+            when (ev.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    v.animate().scaleX(0.95f).scaleY(0.95f).setDuration(80).start()
+                    vibrateTick(5)
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
+                    onClick()
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
     private fun loadInstalledAppsAsync() {
         thread {
             val pm = packageManager
-            val mainIntent = Intent(Intent.ACTION_MAIN, null).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
+            val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
+                addCategory(Intent.CATEGORY_LAUNCHER)
+            }
             val loaded = pm.queryIntentActivities(mainIntent, 0)
                 .mapNotNull { info ->
                     val pkg = info.activityInfo.packageName
                     if (pkg == packageName) return@mapNotNull null
-                    AppEntry(label = info.loadLabel(pm).toString(), pkg = pkg, icon = info.loadIcon(pm))
+                    AppEntry(
+                        label = info.loadLabel(pm).toString(),
+                        pkg = pkg,
+                        icon = info.loadIcon(pm)
+                    )
                 }
                 .sortedBy { it.label.lowercase(Locale.getDefault()) }
 
             runOnUiThread {
-                val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                val hiddenPkgs = prefs.getStringSet("hidden_apps", emptySet()) ?: emptySet()
-                appGrid.numColumns = prefs.getInt("grid_columns", 4)
-
                 allApps.clear()
-                allApps.addAll(loaded.filter { it.pkg !in hiddenPkgs })
+                allApps.addAll(loaded)
                 filterApps(searchInput.text.toString())
                 refreshDockIcons()
             }
@@ -831,11 +703,10 @@ class MainActivity : Activity() {
         }
         return if (res % 1.0 == 0.0) res.toLong().toString() else String.format(Locale.US, "%.3f", res)
     }
-
-    //huhhhhhhhhhhhhhhhhhhhhhhhhhhh
+//huhhhhhhhhhhhhhhhhhhhhhhhhhhh
     private fun updateHeaderTelemetry() {
         val now = Date()
-        clockText.text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(now)
+        clockText.text = SimpleDateFormat("hh:mm", Locale.getDefault()).format(now)
         val dateStr = SimpleDateFormat("EEE, dd MMM", Locale.getDefault()).format(now).uppercase(Locale.getDefault())
         val mobileMb = (TrafficStats.getMobileRxBytes() + TrafficStats.getMobileTxBytes()) / (1024 * 1024)
         val edgeState = if (EdgeGestureService.instance != null) "EDGE ON" else "ENABLE EDGE"
@@ -853,7 +724,6 @@ class MainActivity : Activity() {
     }
 
     private fun launchPackage(pkg: String) {
-        if (contextMenuLayer.childCount > 0) contextMenuLayer.removeAllViews()
         val intent = packageManager.getLaunchIntentForPackage(pkg)
         if (intent != null) startActivity(intent)
     }
@@ -884,13 +754,12 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun dp(v: Int): Int = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v.toFloat(), resources.displayMetrics).toInt()
+    private fun dp(v: Int): Int =
+        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v.toFloat(), resources.displayMetrics).toInt()
 
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
-        if (contextMenuLayer.childCount > 0) {
-            contextMenuLayer.removeAllViews()
-        } else if (drawerSpring.pos < screenHeight * 0.5f) {
+        if (drawerSpring.pos < screenHeight * 0.5f) {
             hideKeyboard()
             drawerSpring.animateTo(screenHeight, 0f) { y -> applyDrawerFrame(y) }
         }
@@ -903,95 +772,32 @@ class MainActivity : Activity() {
 
         override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
             val item = filteredApps[position]
-
-            // Use a FrameLayout wrapper inside the adapter so we can overlay the unread dot badge on the icon
-            val box = (convertView as? FrameLayout) ?: FrameLayout(this@MainActivity).apply {
+            val box = (convertView as? LinearLayout) ?: LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER_HORIZONTAL
                 setPadding(dp(4), dp(8), dp(4), dp(8))
-
-                val innerLayout = LinearLayout(context).apply {
-                    orientation = LinearLayout.VERTICAL
-                    gravity = Gravity.CENTER_HORIZONTAL
-                    layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-                    addView(ImageView(context).apply { layoutParams = LinearLayout.LayoutParams(dp(52), dp(52)) })
-                    addView(TextView(context).apply {
-                        setTextColor(Color.WHITE)
-                        setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
-                        gravity = Gravity.CENTER
-                        maxLines = 1
-                        setPadding(0, dp(6), 0, 0)
-                    })
-                }
-                addView(innerLayout)
-
-                // Nothing-red unread notification dot badge (top-right of app icon)
-                val unreadDot = View(context).apply {
-                    id = 999 // Tag ID to look up later
-                    visibility = View.GONE
-                    background = GradientDrawable().apply {
-                        shape = GradientDrawable.OVAL
-                        setColor(Color.parseColor("#D71921"))
-                        setStroke(dp(1), Color.parseColor("#101014"))
-                    }
-                    layoutParams = FrameLayout.LayoutParams(dp(10), dp(10), Gravity.TOP or Gravity.END).apply {
-                        topMargin = dp(4)
-                        marginEnd = dp(8)
-                    }
-                }
-                addView(unreadDot)
+                addView(ImageView(context).apply {
+                    layoutParams = LinearLayout.LayoutParams(dp(48), dp(48))
+                })
+                addView(TextView(context).apply {
+                    setTextColor(Color.WHITE)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+                    gravity = Gravity.CENTER
+                    maxLines = 1
+                    setPadding(0, dp(6), 0, 0)
+                })
             }
-
-            val innerLayout = box.getChildAt(0) as LinearLayout
-            val iconView = innerLayout.getChildAt(0) as ImageView
-            val labelView = innerLayout.getChildAt(1) as TextView
-            val unreadDot = box.findViewById<View>(999)
-
-            iconView.setImageDrawable(item.icon)
-            labelView.text = item.label
-            labelView.setTextColor(Color.WHITE)
-
-            // Check unread count from our NotificationListenerService
+            (box.getChildAt(0) as ImageView).setImageDrawable(item.icon)
             val unread = MediaTurntableService.unreadCounts[item.pkg] ?: 0
-            unreadDot.visibility = if (unread > 0) View.VISIBLE else View.GONE
-
-            var startX = 0f
-            var startY = 0f
-            var isCancelled = false
-
-            box.setOnTouchListener { v, ev ->
-                when (ev.actionMasked) {
-                    MotionEvent.ACTION_DOWN -> {
-                        startX = ev.rawX; startY = ev.rawY; isCancelled = false
-                        v.animate().scaleX(0.92f).scaleY(0.92f).setDuration(80).start()
-                        false
-                    }
-                    MotionEvent.ACTION_MOVE -> {
-                        if (!isCancelled && (abs(ev.rawX - startX) > touchSlop || abs(ev.rawY - startY) > touchSlop)) {
-                            isCancelled = true
-                            v.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
-                        }
-                        false
-                    }
-                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                        v.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
-                        false
-                    }
-                    else -> false
-                }
+            val labelView = box.getChildAt(1) as TextView
+            if (unread > 0) {
+                labelView.text = "${item.label} •$unread"
+                labelView.setTextColor(Color.parseColor("#FF6B70"))
+            } else {
+                labelView.text = item.label
+                labelView.setTextColor(Color.WHITE)
             }
-
-            box.setOnClickListener {
-                if (!isCancelled) launchPackage(item.pkg)
-            }
-
-            box.setOnLongClickListener {
-                if (!isCancelled) {
-                    val location = IntArray(2)
-                    box.getLocationOnScreen(location)
-                    showContextMenu(item, location[0].toFloat() + (box.width / 2), location[1].toFloat())
-                }
-                true
-            }
-
+            attachPressFeedback(box) { launchPackage(item.pkg) }
             return box
         }
     }
